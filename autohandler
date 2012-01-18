@@ -1,0 +1,146 @@
+<%init>
+	my $title = "Mason Blog";
+	
+	use lib '/home/httpd/www/test/htdocs/ws11/wae06/lib';
+	use lib '/home/httpd/www/test/htdocs/ws11/wae06/objects';
+
+	use DBConnection;
+	use SiteHandler;
+	use Entry;
+	use Category;
+	use User;
+	use POSIX qw/strftime/;
+	
+	my $db = new DBConnection(\%dbx);
+	my $entry = new Entry(\%dbx, $id, $titel, $content, $published, $category_id, $user_id);
+	my $category = new Category(\%dbx, $category_id, $category_name);
+	my $user = new User(\%dbx, $user_id, $username, $password, $user_is_admin);
+	my $site = new SiteHandler($db, $id, $action, \%session, $entry, $category, $user);
+	my $session = \%session;
+	
+	$m->cache(data_cache_defaults => {cache_class => 'NullCache'});
+	
+</%init>
+<%args>
+	$id => 0
+	$action => ''
+	$save => undef
+	$titel => undef
+	$content => undef
+	$published => undef
+	$category_id => undef
+	$category_name => undef
+	$user_id => undef
+	$username => undef
+	$password => undef
+	$user_is_admin => undef
+</%args>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+	<title><% $title %></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="pragma" content="no-cache" />
+	<meta http-equiv="cache-control" content="no-cache" />
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	
+	<!-- Skin CSS file -->
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.9.0/build/assets/skins/sam/skin.css">
+	<!-- Utility Dependencies -->
+	<script src="http://yui.yahooapis.com/2.9.0/build/yahoo-dom-event/yahoo-dom-event.js"></script> 
+	<script src="http://yui.yahooapis.com/2.9.0/build/element/element-min.js"></script> 
+	<!-- Needed for Menus, Buttons and Overlays used in the Toolbar -->
+	<script src="http://yui.yahooapis.com/2.9.0/build/container/container_core-min.js"></script>
+	<script src="http://yui.yahooapis.com/2.9.0/build/menu/menu-min.js"></script>
+	<script src="http://yui.yahooapis.com/2.9.0/build/button/button-min.js"></script>
+	<!-- Source file for Rich Text Editor-->
+	<script src="http://yui.yahooapis.com/2.9.0/build/editor/editor-min.js"></script>
+ </head>
+ <body>
+
+	<div id="header">
+		<img src="./images/book_icon.png" style="height:90px;">
+		<h1>Freddy vs. Mason - A knowledge blog</h1>
+	</div>
+	
+	<div id="main_container">
+		<div class="left_menu">
+% if ($site->is_loggedin() == 1) {
+					Logged in as <% $site->username() %>.
+							<ul class="parent_list">
+								<li><a href="?action=logout">Logout</a></li>
+								<li><a href="?action=add_entry">New post</a></li>
+%		if($site->is_admin() == 1) {
+								<li><a href="?action=add_category">New category</a></li>
+								<li><a href="?action=add_user">New user</a></li>
+%		}
+							</ul>
+% } else {
+							<ul class="parent_list">
+								<li><a href="?action=login">Login</a></li>
+							</ul>
+% }
+			<br />
+			Filter posts by category:
+			<ul class="parent_list">
+					<& components/menu_categories.mc, 'site' => $site &>
+			</ul>
+			<br />
+			Filter posts by creator:
+			<ul class="parent_list">
+				<& components/menu_users.mc, 'site' => $site &>
+			</ul>
+			<br />
+			<ul class="parent_list">
+				<li><a href="?action=latest">Latest posts</a></li>
+			</ul>
+		</div>
+		<div class="content">
+% if ($action eq 'login') {
+	<& components/loginform.mc, 'site' => $site, 'action' => $action, 'username' => $username, 'password' => $password &>
+% } elsif ($action eq 'logout') {
+%	 	$site->logout();
+%		$m->redirect(".");
+% } elsif ($action eq 'edit_entry') {
+	<& components/edit_entry.mc, 'site' => $site, 'save' => $save &>
+% } elsif ($action eq 'add_entry') {
+	<& components/add_entry.mc, 'site' => $site, 'save' => $save &>
+% } elsif ($action eq 'add_user') {
+	<& components/add_user.mc, 'site' => $site, 'save' => $save &>
+% } elsif ($action eq 'add_category') {
+	<& components/add_category.mc, 'site' => $site, 'save' => $save &>
+% } elsif ($action eq 'delete_entry') {
+	<& components/delete_entry.mc, 'site' => $site, 'save' => $save &>
+% } elsif ($action eq 'latest') {
+		<& components/latest.mc, 'site' => $site, 'save' => $save &>
+% } elsif ($action eq 'show_entry') {
+	<& components/show_entry.mc, 'site' => $site &>
+% } elsif ($action eq 'show_entries_by_category') {
+	<& components/show_entries_by_category.mc, 'site' => $site &>
+% } elsif ($action eq 'show_entries_by_user') {
+	<& components/show_entries_by_user.mc, 'site' => $site &>
+% } else {
+	<p>
+		Please select a category or user to filter.
+	</p>
+	<p>
+		<img src="images/freddy.jpg" />
+	</p>
+% }
+		</div>
+	</div>
+	<div style="clear:both;"></div>
+	<div id="footer">
+		<center>Yet Another Blogging Tool</center>
+		<center>
+			WAE WS 2011 Gruppe wae06
+		</center>
+		<center>
+			Johannes Kurz, Philip Messlehner, Gerhard Schraml, Matthias Tretter
+		</center>
+	</div>
+	
+ </body>
+</html>
+
