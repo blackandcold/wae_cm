@@ -1,0 +1,2 @@
+Database Script can be found in /doc/.
+If you want to run this example CMS you need Apache, MySQL, mod_perl and Mason (from CPAN or other sources).
